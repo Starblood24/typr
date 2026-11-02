@@ -33,12 +33,16 @@ class TyprApp(App):
                 return f"\x1b[{position.y + 1};{position.x + 1}H\x1b[6 q\x1b[?25{'h' if visible else 'l'}"
         return "\x1b[0 q\x1b[?25l"
 
-    def _display(self, screen, renderable):
-        super()._display(screen, renderable)
-        # shortcut: Textual 8.2.8 hides the native cursor; revisit this hook when upgrading Textual.
-        if renderable is not None and self.is_running and not self.is_headless and self._driver:
+    # shortcut: Textual 8.2.8 has no visible-caret API; revisit these hooks when upgrading.
+    def _begin_update(self):
+        super()._begin_update()
+        if not self.is_headless and self._driver:
+            self._driver.write("\x1b[?25l")
+
+    def _end_update(self):
+        if not self.is_headless and self._driver:
             self._driver.write(self.terminal_cursor())
-            self._driver.flush()
+        super()._end_update()
 
     def __init__(self, data_dir: Path, skip_boot=False):
         super().__init__()

@@ -15,9 +15,28 @@ def windows_console():
     user = ctypes.WinDLL("user32", use_last_error=True)
     kernel.GetConsoleWindow.restype = ctypes.c_void_p
     user.IsWindowVisible.argtypes = [ctypes.c_void_p]
+    user.GetClassNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
     window = kernel.GetConsoleWindow()
-    # ConPTY exposes a hidden message window, not the terminal's actual window.
-    return kernel if window and user.IsWindowVisible(window) else None
+    name = ctypes.create_unicode_buffer(128)
+    user.GetClassNameW(window, name, len(name))
+    # A delegated PseudoConsoleWindow can report visible despite having no on-screen content.
+    return kernel if name.value == "ConsoleWindowClass" and user.IsWindowVisible(window) else None
+
+
+def windows_terminal():
+    """Recognize Windows' default-terminal delegation, which may omit WT_SESSION."""
+    if sys.platform != "win32":
+        return False
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    user = ctypes.WinDLL("user32", use_last_error=True)
+    kernel.GetConsoleWindow.restype = ctypes.c_void_p
+    user.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    user.GetAncestor.restype = ctypes.c_void_p
+    user.GetClassNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+    window = user.GetAncestor(kernel.GetConsoleWindow(), 3)  # GA_ROOTOWNER
+    name = ctypes.create_unicode_buffer(128)
+    user.GetClassNameW(window, name, len(name))
+    return name.value == "CASCADIA_HOSTING_WINDOW_CLASS"
 
 
 def fullscreen_console():
@@ -42,6 +61,9 @@ def current_terminal():
     if (any(env.get(key) for key in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "TMUX", "STY"))
             or env.get("TERM", "").startswith(("screen", "tmux"))):
         return None
+    # A real local console takes precedence over markers inherited from its parent terminal.
+    if windows_console() is not None:
+        return "conhost"
     if env.get("KITTY_WINDOW_ID") and env.get("TERM") == "xterm-kitty":
         return "kitty" if sys.platform in ("linux", "darwin") else None
     program = env.get("TERM_PROGRAM", "").lower()
@@ -53,20 +75,21 @@ def current_terminal():
         return "wezterm"
     if sys.platform == "win32" and env.get("WT_SESSION"):
         return "wt"
-    if windows_console() is not None:
-        return "conhost"
+    if windows_terminal():
+        return "wt"
     return None
 
 
 def launch_fullscreen():
-    if (os.environ.get("TYPR_FULLSCREEN") == "1"
-            or not sys.stdin.isatty() or not sys.stdout.isatty()):
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
         return None
     terminal = current_terminal()
     if terminal is None:
         return None
     if terminal == "conhost":
         fullscreen_console()
+        return None
+    if os.environ.get("TYPR_FULLSCREEN") == "1":
         return None
     executable = shutil.which(terminal)
     if not executable and terminal == "wezterm" and sys.platform == "win32":

@@ -18,7 +18,9 @@ of the same terminal. Startup inside kitty on Linux/macOS uses its fullscreen
 launch option. A classic Windows console (Command Prompt or PowerShell in
 Console Host) switches its existing window to fullscreen using the native console
 API and restores its previous display mode on normal process exit. An already
-fullscreen console stays fullscreen. An installed terminal alone never causes
+fullscreen console stays fullscreen. A visible local console takes precedence
+over inherited terminal identifiers and fullscreen launch markers; SSH and nested
+sessions still stay in place. An installed terminal alone never causes
 typr to switch to it.
 
 Use `typr --windowed` (or `python -m typr --windowed`) to keep the current
@@ -109,7 +111,7 @@ Only Animations, Cursor Blink, ASCII Art and Data Management are exposed.
 Changes autosave. ASCII Art Off also activates Compact Utility Mode, retaining
 boot text and all functionality. Small windows automatically compact; below
 40 × 12 the application asks for a resize. Typing uses three lines, reducing
-to two or one in short windows. The native terminal bar cursor is positioned over the target without inserting a gap, moving the text or recoloring the pending character. WezTerm supports this cursor shape; appearance in other terminals depends on their cursor support. Cursor blinking starts only after input is idle. The boot shows a new status every 0.75 seconds (about 4.5 seconds total) and remains skippable. Artwork visibility depends on available width, not a fixed minimum window height; short windows can scroll the artwork.
+to two or one in short windows. The native terminal bar cursor is positioned over the target without inserting a gap, moving the text or recoloring the pending character. WezTerm supports this cursor shape; appearance in other terminals depends on their cursor support. Cursor blinking starts only after input is idle. During screen painting the cursor is hidden, then restored at the typing position before the frame completes, preventing a visible cursor at intermediate drawing positions. The boot shows a new status every 0.75 seconds (about 4.5 seconds total) and remains skippable. Artwork visibility depends on available width, not a fixed minimum window height; short windows can scroll the artwork.
 
 Data is local SQLite at `%LOCALAPPDATA%\typr\typr.db` on Windows (the precise
 path is shown under Settings → Data). Settings, last Classic configuration,

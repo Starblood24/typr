@@ -196,3 +196,23 @@ A real conhost.exe + cmd.exe launch reached Home at display mode 1, 1440 x 900
 logical pixels, and restored mode 0 at exit. The --windowed run reached Home at
 mode 0 in its original 930 x 516 window. Native check files use isolated data.
 Force-killing the process cannot guarantee restoration. Linux/macOS were not rerun.
+
+## cmd fullscreen and cursor rendering regression — 2 November 2026
+
+Reproduced a classic-console launch that stayed windowed when TERM_PROGRAM,
+WEZTERM_PANE and TYPR_FULLSCREEN were inherited from a parent terminal. The
+visible console now wins over those markers; remote/nested sessions remain excluded.
+Native before/after checks covered the actual boot and typing screens: the failing
+case stayed at mode 0 before the fix, then reached mode 1 and full display bounds
+after it. Exit restored the original 930 x 516 window.
+
+Captured the real output stream while typing. Previously the caret remained
+visible while Textual moved its output position and repainted metrics/text. Cursor
+visibility now brackets rendering inside Textual update boundaries: hide, paint,
+position/show, finish update. No target characters or wrapping are changed.
+
+**133 tests passed in the full run (46.80s).** After adding synchronized-output
+coverage, **36 targeted cases passed (2.45s)**, bringing covered cases to 134.
+The cursor regression now uses the real App._display implementation rather than
+mocking away the frame rendering. Native console output ordering was checked;
+no pixel/video-based flicker measurement or Linux/macOS run was performed.

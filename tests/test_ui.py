@@ -556,7 +556,9 @@ async def test_common_mount_setup_runs_once(tmp_path):
             assert calls.count(PauseScreen) == 1
 
 
-async def test_cursor_commands_reach_driver_and_restore_on_exit(tmp_path):
+@pytest.mark.parametrize("synchronized", [False, True])
+async def test_cursor_commands_reach_driver_and_restore_on_exit(tmp_path, synchronized):
+    from rich.text import Text
     app = TyprApp(tmp_path, skip_boot=True)
     async with app.run_test() as pilot:
         await pilot.press("enter", "a")
@@ -568,9 +570,16 @@ async def test_cursor_commands_reach_driver_and_restore_on_exit(tmp_path):
             expected = app.terminal_cursor()
             driver.reset_mock()
             with patch.object(App, "is_headless", new_callable=PropertyMock, return_value=False), \
-                 patch.object(App, "_display"), patch.object(app, "_driver", driver):
-                app._display(app.screen, object())
-            driver.write.assert_called_once_with(expected)
+                 patch.object(app, "_driver", driver), patch.object(app, "_sync_available", synchronized):
+                app._display(app.screen, Text("frame contents"))
+            writes = [call.args[0] for call in driver.write.call_args_list]
+            if synchronized:
+                assert writes.pop(0) == "\x1b[?2026h"
+                assert writes.pop() == "\x1b[?2026l"
+            assert writes[0] == "\x1b[?25l"
+            assert "frame contents" in "".join(writes[1:-1])
+            assert writes[-1] == expected
+            assert "\x1b[?25h" not in "".join(writes[:-1])
             driver.flush.assert_called_once_with()
         check_frame()
         view.blink = False

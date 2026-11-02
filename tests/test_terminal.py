@@ -5,11 +5,13 @@ from unittest.mock import Mock
 import pytest
 
 from typr import terminal
+from typr.terminal import windows_console, windows_terminal
 
 
 @pytest.fixture(autouse=True)
 def terminal_environment(monkeypatch):
     monkeypatch.setattr(terminal, "windows_console", lambda: None)
+    monkeypatch.setattr(terminal, "windows_terminal", lambda: False)
     for key in ("TERM_PROGRAM", "TERM", "WEZTERM_PANE", "WT_SESSION", "KITTY_WINDOW_ID",
                 "SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY", "TMUX", "STY", "TYPR_FULLSCREEN",
                 "WEZTERM_CONFIG_FILE", "TYPR_WEZTERM_CONFIG"):
@@ -41,6 +43,7 @@ def test_detects_host_without_switching_to_installed_terminal(monkeypatch, platf
 @pytest.mark.parametrize("key,value", [("SSH_CONNECTION", "remote"), ("SSH_CLIENT", "remote"),
     ("SSH_TTY", "/dev/pts/1"), ("TMUX", "session"), ("STY", "session"), ("TERM", "screen-256color")])
 def test_remote_and_nested_sessions_stay_in_place(monkeypatch, key, value):
+    monkeypatch.setattr(terminal, "windows_console", lambda: Mock())
     monkeypatch.setenv("TERM_PROGRAM", "WezTerm")
     monkeypatch.setenv(key, value)
     assert terminal.current_terminal() is None
@@ -105,6 +108,68 @@ def test_windows_wezterm_uses_install_path_when_not_on_path(monkeypatch, tmp_pat
 def test_visible_legacy_console_is_detected_without_terminal_markers(monkeypatch):
     monkeypatch.setattr(terminal, "windows_console", Mock(return_value=Mock()))
     assert terminal.current_terminal() == "conhost"
+
+
+@pytest.mark.parametrize("name,visible,expected", [
+    ("ConsoleWindowClass", True, True), ("ConsoleWindowClass", False, False),
+    ("PseudoConsoleWindow", True, False), ("PseudoConsoleWindow", False, False),
+])
+def test_only_real_console_windows_use_legacy_fullscreen(monkeypatch, name, visible, expected):
+    kernel, user = Mock(), Mock()
+    kernel.GetConsoleWindow.return_value = 123
+    user.IsWindowVisible.return_value = visible
+    def class_name(handle, buffer, length):
+        buffer.value = name
+        return len(name)
+    user.GetClassNameW.side_effect = class_name
+    monkeypatch.setattr(terminal.sys, "platform", "win32")
+    monkeypatch.setattr(ctypes, "WinDLL", lambda dll, **_: kernel if dll == "kernel32" else user, raising=False)
+    assert (windows_console() is kernel) == expected
+
+
+@pytest.mark.parametrize("host_class", ["CASCADIA_HOSTING_WINDOW_CLASS", "OtherTerminal", ""])
+def test_delegated_host_is_identified_from_its_own_window(monkeypatch, host_class):
+    kernel, user = Mock(), Mock()
+    kernel.GetConsoleWindow.return_value = 123
+    user.GetAncestor.return_value = 456
+    def class_name(window, buffer, length):
+        assert window == 456
+        buffer.value = host_class
+        return len(host_class)
+    user.GetClassNameW.side_effect = class_name
+    monkeypatch.setattr(terminal.sys, "platform", "win32")
+    monkeypatch.setattr(ctypes, "WinDLL", lambda dll, **_: kernel if dll == "kernel32" else user, raising=False)
+    assert windows_terminal() == (host_class == "CASCADIA_HOSTING_WINDOW_CLASS")
+    user.GetAncestor.assert_called_once_with(123, 3)
+
+
+def test_delegated_windows_terminal_launches_without_environment_markers(monkeypatch):
+    monkeypatch.setattr(terminal, "windows_terminal", lambda: True)
+    monkeypatch.setattr(terminal.shutil, "which", lambda name: "wt.exe" if name == "wt" else None)
+    run = Mock(return_value=Mock(returncode=0))
+    monkeypatch.setattr(terminal.subprocess, "run", run)
+    assert terminal.current_terminal() == "wt"
+    assert terminal.launch_fullscreen() == 0
+    assert run.call_args.args[0][:4] == ["wt.exe", "--window", "new", "--fullscreen"]
+
+
+@pytest.mark.parametrize("markers", [
+    {"TERM_PROGRAM": "WezTerm", "WEZTERM_PANE": "0", "TYPR_FULLSCREEN": "1"},
+    {"WT_SESSION": "parent", "TYPR_FULLSCREEN": "1"},
+    {"TERM_PROGRAM": "vscode"},
+])
+def test_real_console_overrides_inherited_terminal_and_launch_markers(monkeypatch, markers):
+    monkeypatch.setattr(terminal, "windows_console", lambda: Mock())
+    for key, value in markers.items():
+        monkeypatch.setenv(key, value)
+    fullscreen = Mock()
+    run = Mock()
+    monkeypatch.setattr(terminal, "fullscreen_console", fullscreen)
+    monkeypatch.setattr(terminal.subprocess, "run", run)
+    assert terminal.current_terminal() == "conhost"
+    assert terminal.launch_fullscreen() is None
+    fullscreen.assert_called_once_with()
+    run.assert_not_called()
 
 
 @pytest.mark.parametrize("state", ["windowed", "fullscreen", "query_error", "set_error"])
