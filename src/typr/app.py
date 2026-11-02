@@ -1,4 +1,4 @@
-from dataclasses import fields
+from dataclasses import fields, replace
 import json
 from pathlib import Path
 import sqlite3
@@ -12,7 +12,7 @@ from .modes.story import load_stories
 from .storage.database import Database, DEFAULTS
 from .ui.screens import (BootScreen, HomeScreen, TypingScreen, PauseScreen, ResultsScreen,
                          StoryDirectoryScreen, ChapterIntroScreen, StoryCompleteScreen,
-                         ConfirmScreen, ErrorScreen, SettingsScreen, StatsScreen)
+                         ConfirmScreen, ErrorScreen, SettingsScreen, DataScreen, StatsScreen)
 from .ui.widgets import TypingView
 
 
@@ -98,15 +98,16 @@ class TyprApp(App):
     def save_config_and_start(self):
         self.io(lambda: self.db.setting("classic", json.dumps(self.classic_config.as_dict())), lambda _: self.start_classic())
 
-    def start_classic(self, text=None):
+    def start_classic(self, text=None, config=None):
         self.story = None
-        self.original_text = text if text is not None else generate(self.classic_config)
-        self.session = Session(self.original_text, self.classic_config.length if self.classic_config.test_type == "time" else None)
+        self.session_config = replace(config if config is not None else self.classic_config)
+        self.original_text = text if text is not None else generate(self.session_config)
+        self.session = Session(self.original_text, self.session_config.length if self.session_config.test_type == "time" else None)
         self.saving = False
         self.replace_session_screen(TypingScreen())
 
     def replace_session_screen(self, screen):
-        while len(self.screen_stack) > 2 and isinstance(self.screen, (PauseScreen, ConfirmScreen, ErrorScreen)):
+        while len(self.screen_stack) > 2 and isinstance(self.screen, (PauseScreen, SettingsScreen, DataScreen, ConfirmScreen, ErrorScreen)):
             self.pop_screen()
         if isinstance(self.screen, (TypingScreen, ResultsScreen, ChapterIntroScreen, StoryCompleteScreen)):
             self.switch_screen(screen)
@@ -144,7 +145,7 @@ class TyprApp(App):
                 self.saving = True
                 self.io(lambda: self.db.checkpoint(self.story.id, next_index), lambda _: self.advance_story(next_index))
             elif s.duration:
-                s.target += " " + generate(self.classic_config)
+                s.target += " " + generate(self.session_config)
                 self.original_text = s.target
             else:
                 s.finish()
@@ -156,7 +157,7 @@ class TyprApp(App):
         if self.saving:
             return
         self.saving = True
-        self.io(lambda: self.db.save_session(self.classic_config, self.session), lambda _: self.replace_session_screen(ResultsScreen()))
+        self.io(lambda: self.db.save_session(self.session_config, self.session), lambda _: self.replace_session_screen(ResultsScreen()))
 
     def restart(self):
         self.saving = False
@@ -165,7 +166,7 @@ class TyprApp(App):
             self.session = Session(self.story.paragraphs[self.paragraph][2], None, strict=True)
             self.replace_session_screen(TypingScreen())
         else:
-            self.start_classic(self.original_text)
+            self.start_classic(self.original_text, self.session_config)
 
     def action_restart_current(self):
         if self.saving and isinstance(self.screen, (ErrorScreen, ConfirmScreen)):

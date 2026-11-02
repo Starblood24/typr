@@ -5,6 +5,7 @@ from textual.screen import Screen
 from textual.widgets import Static
 
 from typr.core.typing_engine import SessionStatus
+from typr.modes.classic import ClassicConfig
 from .widgets import TerminalMenu, TypingView, art, clock_text, progress, wpm_chart
 
 
@@ -49,6 +50,8 @@ class UtilityScreen(Screen):
         self.set_class(self.app.settings.get("ascii art") == "off"
                        or size.width < artwork_width + 6 + 32 + 4, "hide-art")
         if self.is_mounted:
+            for info in self.query("#boot-info"):
+                info.styles.height = min(24, max(8, size.height - (4 if self.has_class("compact") else 5)))
             for view in self.query(TypingView):
                 view.styles.height = 1 if size.height < 15 else 2 if size.height < 18 else 3
             footer = self.query_one(".footer", Static)
@@ -72,9 +75,12 @@ class BootScreen(UtilityScreen):
             image = Static(star, classes="art", markup=False)
             image.styles.width = max(map(cell_len, star.splitlines()))
             yield image
-            with Vertical(classes="right"):
+            with Vertical(classes="right", id="boot-info"):
                 yield Static("starOS [version 0.1]\nTYPR TERMINAL SUBSYSTEM")
                 yield Static("", id="boot-log", markup=False)
+                with Vertical(id="boot-status"):
+                    yield Static(progress(0), id="boot-progress", markup=False)
+                    yield Static("", id="boot-ready", markup=False)
 
     def on_mount(self):
         self.step = 0
@@ -83,7 +89,9 @@ class BootScreen(UtilityScreen):
     def advance(self):
         lines = ["memory ............. ok", "language banks ..... ok", "story archive ...... ok", "input driver ....... ok"]
         self.step += 1
-        self.query_one("#boot-log", Static).update("\n\n".join(lines[:self.step]) + "\n\n" + progress(self.step / 5) + ("\n\nsystem ready_" if self.step >= 5 else ""))
+        self.query_one("#boot-log", Static).update("\n".join(lines[:self.step]))
+        self.query_one("#boot-progress", Static).update(progress(self.step / 5))
+        self.query_one("#boot-ready", Static).update("system ready_" if self.step >= 5 else "")
         if self.step >= 6:
             self.timer.stop()
             self.app.switch_screen(HomeScreen())
@@ -96,7 +104,7 @@ class BootScreen(UtilityScreen):
 
 
 class HomeScreen(UtilityScreen):
-    footer_text = "↑↓ navigate   enter select   q quit"
+    footer_text = "↑↓ navigate   enter select   q/esc quit"
 
     def body(self):
         with Horizontal(classes="split"):
@@ -126,7 +134,7 @@ class HomeScreen(UtilityScreen):
             elif event.key in ("n", "escape", "enter"):
                 self.cancel_quit()
             event.stop()
-        elif event.key == "q":
+        elif event.key in ("q", "escape"):
             self.request_quit()
             event.stop()
 
@@ -135,7 +143,7 @@ class HomeScreen(UtilityScreen):
             self.cancel_quit()
             return
         match event.key:
-            case "quick start": self.app.start_classic()
+            case "quick start": self.app.start_classic(config=ClassicConfig())
             case "classic": self.app.push_screen(ClassicSetupScreen())
             case "story": self.app.open_stories()
             case "stats": self.app.open_stats()
@@ -252,7 +260,7 @@ class PauseScreen(UtilityScreen):
     def body(self):
         yield Static("session paused.", classes="spaced")
         yield Static("", id="remaining", classes="spaced", markup=False)
-        yield TerminalMenu([(s, s) for s in ("resume", "restart", "abort")])
+        yield TerminalMenu([(s, s) for s in ("resume", "restart", "settings", "abort")])
 
     def on_mount(self):
         self.refresh_session()
@@ -274,6 +282,8 @@ class PauseScreen(UtilityScreen):
             self.app.pop_screen()
         elif event.key == "restart":
             self.app.restart()
+        elif event.key == "settings":
+            self.app.push_screen(SettingsScreen())
         else:
             self.app.push_screen(ConfirmScreen("discard this incomplete session?", self.app.abort))
 
@@ -293,9 +303,9 @@ class ResultsScreen(UtilityScreen):
 
     def on_terminal_menu_selected(self, event):
         if event.key == "retry":
-            self.app.start_classic(self.app.original_text)
+            self.app.start_classic(self.app.original_text, self.app.session_config)
         elif event.key == "new test":
-            self.app.start_classic()
+            self.app.start_classic(config=self.app.session_config)
         else:
             self.app.return_home()
 

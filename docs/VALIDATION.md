@@ -106,3 +106,60 @@ on Pause, idle visibility changes and default-style restoration on exit.
 retry/discard, cancelling discard and rejecting a restart bypass; startup retry,
 quit and Escape; typing focus across pause/resume; and single screen setup.
 No new manual WezTerm session, other-OS run or endurance test was performed.
+
+## Fullscreen starter — 2 November 2026
+
+run.ps1 launches a separate WezTerm instance with project-local configuration.
+The native fullscreen API was checked in a real window: is_full_screen=true,
+2880×1800, inherited font size 14. A hash check confirmed the original user
+configuration was unchanged. The Lua self-check verifies enabling fullscreen,
+not disabling it on reattachment and leaving other workspaces untouched.
+
+Run the self-check with `wezterm --config-file tests/check_fullscreen.lua show-keys`.
+The Python application is unchanged; the previously passing 85 Python tests were
+not repeated for this launcher-only change. Other terminal emulators are not
+supported by this Windows/WezTerm fullscreen starter.
+
+## Fixed boot progress position — 2 November 2026
+
+The boot log now reserves four lines and displays status messages on consecutive
+rows. Progress and readiness have a separate bottom-docked status area, anchored
+to the right-hand boot column. Short windows reduce the column height to fit.
+
+**88 tests passed in 17.13s.** Added checks keep the progress coordinates constant
+through all five animation stages at 100×36, 100×24 and 40×12. Both normal and
+compact rendered views were visually inspected. No new native WezTerm session
+was run for this layout-only change.
+
+## Escape on Home — 2 November 2026
+
+Escape now opens the same inline terminate prompt as q. In that prompt, y
+quits; n, Enter and Escape cancel and preserve the menu selection. The Home
+footer lists q/esc. Four keyboard regression cases verify these choices.
+
+**92 tests passed.** No additional manual WezTerm session was run.
+
+## Fixed Quick Start defaults and Pause settings — 2 November 2026
+
+Quick Start always starts English / Common / time / 30 seconds, independently
+of saved Classic Setup preferences. Active session configuration is used for
+text replenishment, history, restart, Retry and New Test. Pause opens the existing
+Settings screen; returning preserves the session and selection. Timed expiry
+clears nested Settings, Data and confirmation screens before showing Results.
+
+**97 tests passed in 24.62s.** Regression checks cover saved non-default Classic
+settings, Quick Start retries and history, Classic/Story settings round trips,
+and timed expiry at each settings depth. No new manual WezTerm session was run.
+
+## Fullscreen from the Python command — 2 November 2026
+
+The direct Python command and installed entry point now launch fullscreen
+WezTerm on Windows too. run.ps1 delegates to this same path. A child-only
+environment marker prevents recursive launches. Arguments and the working
+directory are preserved; missing WezTerm and other platforms use the existing
+terminal. The Lua configuration is included in the installable Python package.
+
+**101 tests passed in 22.60s.** Four launcher checks cover argument forwarding,
+recursion prevention, unsupported environments and parent exit status. The Lua
+fullscreen self-check passed. A real direct Python launch reported fullscreen=true,
+2880 x 1800, inherited font size 14. The global user configuration hash was unchanged.

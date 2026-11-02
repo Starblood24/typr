@@ -18,7 +18,9 @@ TerminalMenu:focus { border: none; }
 .art { width: auto; height: auto; margin-right: 6; }
 .right { width: 1fr; height: auto; }
 .spaced { margin: 1 0; }
-#boot-log { margin-top: 3; }
+#boot-log { height: 4; margin-top: 3; }
+#boot-status { dock: bottom; height: 3; }
+#boot-ready { height: 1; margin-top: 1; }
 TypingView { height: 3; margin: 1 0 2 0; }
 TypingView:focus { border: none; }
 .notice { color: $muted; margin: 1 0; }
@@ -30,6 +32,8 @@ Screen.compact { padding: 0 1; }
 Screen.hide-art .art { display: none; }
 Screen.compact .header { margin-bottom: 0; }
 Screen.compact #boot-log { margin-top: 0; }
+Screen.compact #boot-status { height: 2; }
+Screen.compact #boot-ready { margin-top: 0; }
 Screen.compact TerminalMenu { margin: 0; }
 Screen.compact .notice, Screen.compact .spaced { margin: 0; }
 Screen.compact TypingView { margin: 0; }

@@ -12,8 +12,13 @@ cd "$env:USERPROFILE\Desktop\Dev\CLI_Dev\typr"
 .\.venv\Scripts\python -m typr
 ```
 
-Or run `./run.ps1` from the project folder. The local environment is isolated;
-no global Python packages or terminal settings are changed.
+On Windows with WezTerm installed, this command and the installed `typr` command
+automatically open a separate fullscreen WezTerm window. `./run.ps1` uses the same
+launch path. Arguments such as `--skip-boot` and `--data-dir PATH` are forwarded.
+Alt+Enter toggles fullscreen with the default WezTerm bindings. The packaged
+`assets/wezterm-fullscreen.lua` reuses your terminal configuration without editing
+it. Without WezTerm, or on other operating systems, typr runs in the current
+terminal. Python packages remain isolated in the local environment.
 
 ## Install elsewhere
 
@@ -29,8 +34,8 @@ command preview is never sent to a shell.
 
 ## Classic
 
-Quick Start immediately uses the most recently started Classic configuration.
-The first test uses English / Common / 30 seconds. Setup supports English and
+Quick Start always uses Standard / English / Common / 30 seconds.
+Classic Setup remembers its own last configuration. Setup supports English and
 German; Common, Mixed and Advanced; 15/30/60/120 seconds or 10/25/50/100 words.
 Content is kept within the selected language. Training and Developer are deferred
 and do not appear as nonfunctional controls.
@@ -45,6 +50,8 @@ needed and retain that complete text for Retry.
 
 Escape opens a dedicated pause menu. **Time continues while paused.** A timed
 session automatically completes at its deadline, including while paused.
+Settings are also available from Pause; Escape returns to Pause without losing
+typed text. Time continues in Settings and its data-management screens too.
 Restart is immediate; abort requires confirmation. Completed Classic tests
 are saved once. Incomplete, aborted and interrupted tests are discarded.
 Retry repeats the same text; New Test keeps settings and generates fresh text.
@@ -75,7 +82,7 @@ Story results do not enter the Classic statistics page.
 | Up / Down | Menu selection; scroll statistics |
 | Left / Right | Change a setting or Story language filter |
 | Enter | Select |
-| Escape | Back; typing pause; resume from pause |
+| Escape | Home quit request; back; typing pause; resume from pause |
 | Backspace | Delete typed character |
 | Ctrl+R | Restart current test / current unfinished Story paragraph |
 | Ctrl+C | Request quit confirmation |

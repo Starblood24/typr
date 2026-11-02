@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 import pytest
@@ -13,7 +14,7 @@ from typr.storage.database import Database
 from typr.ui.screens import (HomeScreen, BootScreen, ClassicSetupScreen, TypingScreen,
                             PauseScreen, ResultsScreen, StoryDirectoryScreen,
                             ChapterIntroScreen, StoryCompleteScreen, SettingsScreen,
-                            ConfirmScreen, ErrorScreen, StatsScreen)
+                            ConfirmScreen, ErrorScreen, StatsScreen, DataScreen)
 from typr.ui.widgets import TerminalMenu, TypingView
 
 
@@ -34,6 +35,25 @@ async def test_boot_exact_asset_skip_and_menu_selection(tmp_path):
         assert not app.screen.quitting
 
 
+@pytest.mark.parametrize("answer", ["y", "n", "enter", "escape"])
+async def test_home_escape_opens_quit_prompt(tmp_path, answer):
+    app = TyprApp(tmp_path, skip_boot=True)
+    async with app.run_test() as pilot:
+        await pilot.press("down", "escape")
+        home = app.screen
+        assert isinstance(home, HomeScreen)
+        assert home.quitting
+        assert home.query_one("#quit-prompt", Static).content == "terminate? [y/N] _"
+        await pilot.press(answer)
+        if answer == "y":
+            assert app._exit
+        else:
+            assert app.screen is home
+            assert not home.quitting
+            assert home.query_one("#quit-prompt", Static).content == ""
+            assert home.query_one(TerminalMenu).index == 1
+
+
 async def test_setup_options_quick_start_persistence(tmp_path):
     app = TyprApp(tmp_path, skip_boot=True)
     async with app.run_test(size=(100, 36)) as pilot:
@@ -45,7 +65,7 @@ async def test_setup_options_quick_start_persistence(tmp_path):
         await pilot.press("down", "right", "down", "enter")
         assert isinstance(app.screen, TypingScreen)
         assert app.classic_config.length == 50
-        await pilot.press("escape", "down", "down", "enter")
+        await pilot.press("escape", "down", "down", "down", "enter")
         assert isinstance(app.screen, ConfirmScreen)
         await pilot.press("y")
         assert isinstance(app.screen, HomeScreen)
@@ -55,7 +75,30 @@ async def test_setup_options_quick_start_persistence(tmp_path):
         await pilot.press("enter")
         assert isinstance(app.screen, TypingScreen)
         assert app.classic_config.language == "de"
-        assert len(app.session.target.split()) == 50
+        assert app.session_config == ClassicConfig()
+        assert app.session.duration == 30
+        saved_config = app.db.settings()["classic"]
+        assert json.loads(saved_config)["length"] == 50
+        original = app.session.target
+        await pilot.press("a", "ctrl+r")
+        assert app.session.target == original
+        assert app.session_config == ClassicConfig()
+        app.session.type("a")
+        app.session.started -= 31
+        app.tick()
+        await pilot.pause()
+        assert json.loads(app.db.stats()[1][0]["config"]) == ClassicConfig().as_dict()
+        await pilot.press("enter")
+        assert app.session.target == original
+        assert app.session_config == ClassicConfig()
+        app.session.type("a")
+        app.session.started -= 31
+        app.tick()
+        await pilot.pause()
+        await pilot.press("down", "enter")
+        assert app.session.target != original
+        assert app.session_config == ClassicConfig()
+        assert app.db.settings()["classic"] == saved_config
 
 
 async def test_typing_results_retry_new_and_stats(tmp_path):
@@ -96,6 +139,60 @@ async def test_pause_expiration_and_single_save(tmp_path):
         assert isinstance(app.screen, ResultsScreen)
         app.tick()
         app.complete_classic()
+        assert app.db.stats()[0]["total"] == 1
+
+
+@pytest.mark.parametrize("mode", ["classic", "story"])
+async def test_pause_settings_returns_to_same_session(tmp_path, mode):
+    app = TyprApp(tmp_path, skip_boot=True)
+    async with app.run_test(size=(100, 36)) as pilot:
+        if mode == "story":
+            app.start_story(load_stories()[0], 1)
+            await pilot.pause()
+        else:
+            await pilot.press("enter")
+        await pilot.press(app.session.target[0], "escape")
+        session = app.session
+        typed = session.typed
+        started = session.started
+        pause = app.screen
+        await pilot.press("down", "down", "enter")
+        assert isinstance(app.screen, SettingsScreen)
+        await pilot.press("down", "down", "right", "escape")
+        assert app.screen is pause
+        assert pause.query_one(TerminalMenu).selected == "settings"
+        assert app.settings["ascii art"] == app.db.settings()["ascii art"] == "off"
+        assert session.status is SessionStatus.PAUSE_MENU
+        await pilot.press("escape")
+        assert isinstance(app.screen, TypingScreen)
+        assert app.screen.has_class("compact")
+        assert app.session is session
+        assert session.typed == typed and session.started == started
+        await pilot.press(session.target[len(typed)])
+        assert len(session.typed) == len(typed) + 1
+
+
+@pytest.mark.parametrize("depth", ["settings", "data", "confirmation"])
+async def test_expiry_leaves_pause_settings_without_stale_screens(tmp_path, depth):
+    app = TyprApp(tmp_path, skip_boot=True)
+    async with app.run_test() as pilot:
+        await pilot.press("enter", "a", "escape", "down", "down", "enter")
+        assert isinstance(app.screen, SettingsScreen)
+        if depth != "settings":
+            await pilot.press("down", "down", "down", "enter")
+            assert isinstance(app.screen, DataScreen)
+            if depth == "confirmation":
+                await pilot.press("enter")
+                assert isinstance(app.screen, ConfirmScreen)
+        app.session.started -= 31
+        app.tick()
+        await pilot.pause()
+        assert isinstance(app.screen, ResultsScreen)
+        assert app.db.stats()[0]["total"] == 1
+        assert not any(isinstance(s, (PauseScreen, SettingsScreen, DataScreen, ConfirmScreen))
+                       for s in app.screen_stack)
+        await pilot.press("enter", "escape", "escape")
+        assert isinstance(app.screen, TypingScreen)
         assert app.db.stats()[0]["total"] == 1
 
 
@@ -486,3 +583,25 @@ async def test_cursor_commands_reach_driver_and_restore_on_exit(tmp_path):
             app.on_unmount()
         driver.write.assert_called_once_with("\x1b[0 q")
         driver.flush.assert_called_once_with()
+
+
+@pytest.mark.parametrize("size", [(100, 36), (100, 24), (40, 12)])
+async def test_boot_progress_stays_anchored_while_lines_appear(tmp_path, size):
+    app = TyprApp(tmp_path)
+    async with app.run_test(size=size) as pilot:
+        boot = app.screen
+        boot.timer.stop()
+        await pilot.pause()
+        bar = boot.query_one("#boot-progress", Static)
+        position = bar.region.offset
+        assert "0%" in str(bar.content)
+        for step in range(1, 6):
+            boot.advance()
+            await pilot.pause()
+            assert bar.region.offset == position
+            assert bar.region.bottom <= boot.query_one(".body").region.bottom
+            log = str(boot.query_one("#boot-log", Static).content)
+            assert "\n\n" not in log
+            assert len(log.splitlines()) == min(step, 4)
+        assert "100%" in str(bar.content)
+        assert boot.query_one("#boot-ready", Static).content == "system ready_"

@@ -19,7 +19,7 @@ typr = "typr.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-typr = ["assets/art/*.txt", "assets/words/*.json", "assets/stories/*/*.json", "ui/*.tcss"]
+typr = ["assets/*.lua", "assets/art/*.txt", "assets/words/*.json", "assets/stories/*/*.json", "ui/*.tcss"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

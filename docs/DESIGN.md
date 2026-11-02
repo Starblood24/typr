@@ -10,8 +10,8 @@ Source: the user's complete specification supplied in this chat, following the
   Approximate 4.5-second skippable starOS introduction; compact keeps boot text.
 - Compact Utility logo left of the six-item Home menu. No Quick Start preview.
   Version appears only on Home and Pause. Returning preserves menu selection.
-- First launch goes directly to Home. Quick Start defaults to English / Common /
-  30 seconds and later reuses the most recently started Classic configuration.
+- After boot, first launch goes directly to Home. Quick Start always uses
+  Standard / English / Common / 30 seconds. Classic Setup keeps its last configuration.
 - Classic has CONTENT and SESSION groups and a decorative command preview.
   Standard only; en/de; Common/Mixed/Advanced; time 15/30/60/120; words 10/25/50/100.
 - Shared typing view: integrated text, distinct correct/error/pending treatment,
@@ -19,7 +19,8 @@ Source: the user's complete specification supplied in this chat, following the
   on small windows, with the cursor always in the visible section. No whitespace
   marks or separate input box. Ordinary Backspace crosses word boundaries.
 - Monotonic first-keystroke timing; pause screen suspends input, not time.
-  Expiry opens Results even from Pause. Restart is immediate; Abort confirms.
+  Pause also opens Settings; Escape returns to Pause with session progress intact.
+  Expiry opens Results even from Pause, Settings or Data. Restart is immediate; Abort confirms.
 - Results: WPM, accuracy, duration and a small ASCII WPM chart. Retry repeats the
   same text; New Test changes content with identical settings. No raw WPM, badges,
   weak-word table, celebratory animation or extra dashboard.
