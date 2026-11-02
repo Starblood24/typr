@@ -1,0 +1,35 @@
+$background: #0B130E;
+$primary: #91B99A;
+$muted: #63816A;
+$separator: #294330;
+$focus: #C1E3C7;
+Screen { background: $background; color: $primary; padding: 0 2; }
+Static { height: auto; }
+.header { height: 2; border-bottom: solid $separator; margin-bottom: 1; }
+.footer { height: 2; border-top: solid $separator; color: $muted; padding-top: 0; }
+.body { height: 1fr; }
+.section { color: $muted; }
+.selected { color: $focus; }
+.menu-row { height: 1; }
+TerminalMenu { height: auto; margin: 1 0; }
+HomeScreen TerminalMenu { margin: 0; }
+TerminalMenu:focus { border: none; }
+.split { height: auto; }
+.art { width: auto; height: auto; margin-right: 6; }
+.right { width: 1fr; height: auto; }
+.spaced { margin: 1 0; }
+#boot-log { margin-top: 3; }
+TypingView { height: 3; margin: 1 0 2 0; }
+TypingView:focus { border: none; }
+.notice { color: $muted; margin: 1 0; }
+.error { color: #F1C1B8; }
+#resize-notice { display: none; height: 1fr; }
+Screen.tiny #resize-notice { display: block; }
+Screen.tiny .body, Screen.tiny .footer { display: none; }
+Screen.compact { padding: 0 1; }
+Screen.hide-art .art { display: none; }
+Screen.compact .header { margin-bottom: 0; }
+Screen.compact #boot-log { margin-top: 0; }
+Screen.compact TerminalMenu { margin: 0; }
+Screen.compact .notice, Screen.compact .spaced { margin: 0; }
+Screen.compact TypingView { margin: 0; }

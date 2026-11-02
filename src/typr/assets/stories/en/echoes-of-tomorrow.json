@@ -1,0 +1,33 @@
+{
+  "id": "echoes-of-tomorrow",
+  "title": "echoes of tomorrow",
+  "language": "en",
+  "chapters": [
+    {
+      "title": "the repair shop",
+      "intro": "Small things can carry a long way.",
+      "art": "    __________    \n   /  .----.  \\   \n   |  | __ |  |   \n   |  |____|  |   \n   | o     o  |   \n   |__________|   \n     []    []     ",
+      "paragraphs": [
+        "The repair shop opened before the rest of the street. Ivo lifted the shutters, swept the floor, and sorted a tray of screws by size. The first customer brought a pocket radio wrapped in a blue scarf. She said it played only one station, and only when it rained.",
+        "Ivo promised to look inside. Under the cover he found ordinary wires, a tiny speaker, and a folded piece of paper. The paper held a list of street names. Each name had a different date beside it. The final entry named his own street, with the date of tomorrow."
+      ]
+    },
+    {
+      "title": "the weather report",
+      "intro": "Tomorrow sounded surprisingly ordinary.",
+      "paragraphs": [
+        "When the first drops struck the window, the radio woke with a soft hiss. A cheerful voice described the market, the morning train, and a missing dog. Ivo wrote down every word. Nothing sounded impossible until the announcer mentioned that the little repair shop would have a new sign.",
+        "The sign above his door had been broken for months. Ivo looked at it through the wet glass and laughed. Then he fetched a ladder, a brush, and the paint he had been saving. Whatever the radio knew about tomorrow, it had left him enough time to do something useful today."
+      ]
+    },
+    {
+      "title": "a place to listen",
+      "intro": "The future left room for a choice.",
+      "art": "   ___________    \n   | REPAIRS |    \n   |_________|    \n    |  _   |      \n    | | |  |      \n    |_|_|__|      \n   =========      ",
+      "paragraphs": [
+        "The next morning, the woman returned for her radio. Ivo showed her the repaired switch and the list of dates. She smiled at the fresh sign above the door. The radio had belonged to her brother, she said. He always believed a good forecast should give people a reason to help.",
+        "They put the radio on the shop counter, beside a notice asking about the missing dog. By noon someone had brought it home. No voice returned from tomorrow, even when it rained again. The street carried on with its ordinary sounds, and Ivo found that he liked listening to them just as much."
+      ]
+    }
+  ]
+}

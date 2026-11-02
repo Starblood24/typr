@@ -1,0 +1,50 @@
+{
+  "id": "the-last-signal",
+  "title": "the last signal",
+  "language": "en",
+  "chapters": [
+    {
+      "title": "the quiet station",
+      "intro": "Every night, the station listened.",
+      "art": "       .          \n   .-------.      \n   |  .-.  |      \n   | ( o ) |      \n   |  '-'  |      \n   '---+---'      \n      / \\         ",
+      "paragraphs": [
+        "The station at the edge of the valley had been silent for years. Mara still climbed its stairs each evening, carrying a small lamp and a notebook. She checked the old receiver, brushed the dust from its switches, and listened to the patient sound of an empty sky.",
+        "On the last night of autumn, a narrow line appeared across the screen. It moved once, stopped, and moved again. Mara set down her lamp. The pattern was too careful to be weather. Somewhere beyond the mountains, a machine was trying to say that it was still awake."
+      ]
+    },
+    {
+      "title": "a name in the noise",
+      "intro": "The silence had a pattern.",
+      "paragraphs": [
+        "Mara copied the signal into her notebook. Three short pulses, a pause, then two longer ones. Beneath the desk she found a drawer of maintenance records. The newest page was older than she was, but its faded diagram showed the same pattern beside a place called North Relay.",
+        "The road to North Relay had disappeared under grass. At dawn she followed its broken stones through the valley. Birds called from the empty towers along the way. Inside her coat, the receiver clicked softly, keeping time with a message that had waited longer than anyone could remember."
+      ]
+    },
+    {
+      "title": "the response",
+      "intro": "The machine had begun to answer.",
+      "art": "        .         \n    .       .     \n   +---------+    \n   |   >_    |    \n   |         |    \n   +---------+    \n      /   \\       ",
+      "paragraphs": [
+        "North Relay stood beneath a roof of climbing vines. Its door opened with a tired scrape. Inside, a terminal glowed beside a window filled with leaves. A single question waited on the glass. Mara sat down, placed her notebook beside the keyboard, and typed the name of her valley.",
+        "The reply arrived one letter at a time. The relay had been keeping a weather archive for the towns below. Every broken connection had become another unanswered call. It did not know the towns had changed their names. It only knew that the valley might still need a warning."
+      ]
+    },
+    {
+      "title": "across the valley",
+      "intro": "An old task found new hands.",
+      "paragraphs": [
+        "Beyond the window, clouds gathered over the western ridge. Mara read the latest measurements twice. The river would rise before morning. She searched the maintenance cabinet and found a coil of wire, a hand tool, and a map of the remaining towers. There was still a way to reach home.",
+        "She worked until the lamp burned low. One connection became two, then four. Lights appeared on the map like windows opening along a dark street. At the station, far below, the receiver began to speak. The valley keeper heard the warning and went from door to door before the rain."
+      ]
+    },
+    {
+      "title": "the morning channel",
+      "intro": "A signal becomes a conversation.",
+      "art": "      \\ | /       \n    --- o ---     \n      / | \\       \n   ~~~~~~~~~~~    \n    /\\    /\\      \n   /  \\__/  \\     \n  /__________\\    ",
+      "paragraphs": [
+        "By morning the river had filled the lower road, but the houses above it were safe. People gathered at the station with bread, dry blankets, and questions. Mara returned with mud on her boots and the old notebook under her arm. This time, she did not climb the stairs alone.",
+        "They left a chair beside the receiver for anyone who wanted to listen. A new page in the notebook listed the names of every town along the river. At sunset, Mara sent those names to North Relay. The answer came back clearly, without a single missing letter. The channel was open."
+      ]
+    }
+  ]
+}

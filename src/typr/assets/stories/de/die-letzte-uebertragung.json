@@ -1,0 +1,33 @@
+{
+  "id": "die-letzte-uebertragung",
+  "title": "die letzte übertragung",
+  "language": "de",
+  "chapters": [
+    {
+      "title": "das offene fenster",
+      "intro": "Im Archiv brannte noch Licht.",
+      "art": "   +--------+     \n   |  ||||  |     \n   |  ||||  |     \n   +--------+     \n      |  |        \n   ___|__|___     \n  /__________\\    ",
+      "paragraphs": [
+        "Als Jona das alte Archiv betrat, stand ein Fenster offen. Der Wind bewegte die Blätter auf dem Schreibtisch, doch der Bildschirm darunter blieb ruhig. In grünen Buchstaben wartete dort eine Nachricht. Sie bestand aus einem Datum, einer Uhrzeit und der Bitte, den Empfänger nicht auszuschalten.",
+        "Jona zog einen Stuhl heran und las die Nachricht noch einmal. Die Uhrzeit lag genau eine Stunde in der Zukunft. Neben dem Rechner stand eine Tasse mit einem kalten Rest Tee. Auf ihrem Rand saß eine kleine Motte. Draußen fuhr der letzte Bus langsam über den leeren Platz."
+      ]
+    },
+    {
+      "title": "ein kurzer umweg",
+      "intro": "Jede Nachricht braucht jemanden, der zuhört.",
+      "paragraphs": [
+        "Im Keller fand Jona einen Plan der alten Leitungen. Eine davon führte zum Bahnhof, eine andere zum verlassenen Haus am Fluss. Über der zweiten Verbindung hatte jemand mit Bleistift einen Namen geschrieben. Jona kannte ihn aus den Geschichten seiner Großmutter. Es war der Name eines längst verschwundenen Gartens.",
+        "Mit einer Taschenlampe folgte er dem Kabel bis zum Ufer. Hinter dem Haus standen noch immer die alten Obstbäume. An einer Tür hing ein kleiner Empfänger, geschützt durch ein Dach aus Blech. Jona drückte den Schalter. Aus dem Lautsprecher kam erst ein Rauschen und dann eine leise, vertraute Melodie."
+      ]
+    },
+    {
+      "title": "was bleiben darf",
+      "intro": "Die letzte Übertragung war kein Abschied.",
+      "art": "       .-.        \n    .-(   )-.     \n   (   .-.   )    \n    '-(   )-'     \n       | |        \n    ___| |___     \n   /_________\\    ",
+      "paragraphs": [
+        "Die Melodie endete, und eine Stimme begann zu sprechen. Sie erzählte von den Bäumen, vom Hochwasser und von den Menschen, die den Garten einmal gepflegt hatten. Es war keine Warnung. Es war eine Erinnerung, die jedes Jahr zur gleichen Stunde über die alte Leitung nach Hause geschickt wurde.",
+        "Jona kehrte zum Archiv zurück und schrieb eine Antwort. Er erzählte von dem offenen Fenster, der Motte und dem Garten, der noch immer da war. Dann speicherte er die Nachricht für das nächste Jahr. Als er ging, schloss er das Fenster. Den Empfänger ließ er eingeschaltet, genau wie es dort stand."
+      ]
+    }
+  ]
+}
