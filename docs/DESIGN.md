@@ -52,3 +52,9 @@ The suggested architecture is consolidated into substantive modules rather than
 empty one-method service/repository wrappers. App owns the single session timer
 and transitions; the core can be tested without Textual. SQLite provides atomic
 configuration updates, so no second TOML persistence mechanism is added.
+
+Startup update, 2 November 2026: detect the current terminal instead of choosing
+an installed one. Fullscreen launchers cover WezTerm, Windows Terminal and kitty;
+--windowed, unknown hosts, remote/nested terminals and redirected streams stay
+in the current terminal. Failed launch attempts fall back there. No global
+terminal configuration changes. Linux/macOS native validation is still pending.

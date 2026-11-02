@@ -163,3 +163,36 @@ terminal. The Lua configuration is included in the installable Python package.
 recursion prevention, unsupported environments and parent exit status. The Lua
 fullscreen self-check passed. A real direct Python launch reported fullscreen=true,
 2880 x 1800, inherited font size 14. The global user configuration hash was unchanged.
+
+## Terminal-aware fullscreen startup — 2 November 2026
+
+Shared terminal.py now detects the host and launches that terminal, preserving
+Python, arguments, working directory and user configuration. Added --windowed;
+unknown terminals, SSH, tmux/screen and redirected streams stay in place. Child
+arguments and an environment marker prevent recursion. Missing executables,
+OS launch errors and nonzero launcher status fall back to the current terminal.
+
+**125 tests passed in 23.43s.** Tests cover terminal precedence/inherited markers,
+Windows/Linux/macOS command selection, remote/nested sessions, failure paths,
+argument forwarding and explicit windowed startup. The Lua self-check passed.
+Real Windows Terminal and WezTerm launches reached Home using data directories
+with spaces and an umlaut. Native test-window bounds matched the display with
+no caption (1440 x 900 logical pixels on the 2880 x 1800 display). User WezTerm
+configuration SHA-256 remained unchanged. Test apps exit themselves.
+
+Linux/macOS and kitty were not run natively. GNOME Terminal, iTerm2 and
+Terminal.app have no automatic fullscreen launcher in this change.
+
+## Classic Command Prompt fullscreen — 2 November 2026
+
+A visible legacy console is now recognized after named terminal detection.
+Hidden ConPTY message windows are excluded. The native console display-mode API
+enables fullscreen in place; normal interpreter exit restores windowed mode only
+if typr changed it. Existing fullscreen state and --windowed are preserved.
+
+**130 tests passed in 29.95s.** Five additional cases cover legacy-host detection,
+restoration after success, existing fullscreen and failed query/set operations.
+A real conhost.exe + cmd.exe launch reached Home at display mode 1, 1440 x 900
+logical pixels, and restored mode 0 at exit. The --windowed run reached Home at
+mode 0 in its original 930 x 516 window. Native check files use isolated data.
+Force-killing the process cannot guarantee restoration. Linux/macOS were not rerun.

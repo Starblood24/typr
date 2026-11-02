@@ -12,13 +12,25 @@ cd "$env:USERPROFILE\Desktop\Dev\CLI_Dev\typr"
 .\.venv\Scripts\python -m typr
 ```
 
-On Windows with WezTerm installed, this command and the installed `typr` command
-automatically open a separate fullscreen WezTerm window. `./run.ps1` uses the same
-launch path. Arguments such as `--skip-boot` and `--data-dir PATH` are forwarded.
-Alt+Enter toggles fullscreen with the default WezTerm bindings. The packaged
-`assets/wezterm-fullscreen.lua` reuses your terminal configuration without editing
-it. Without WezTerm, or on other operating systems, typr runs in the current
-terminal. Python packages remain isolated in the local environment.
+The Python command, installed `typr` command and `./run.ps1` share one startup
+path. An identified WezTerm or Windows Terminal opens a new fullscreen window
+of the same terminal. Startup inside kitty on Linux/macOS uses its fullscreen
+launch option. A classic Windows console (Command Prompt or PowerShell in
+Console Host) switches its existing window to fullscreen using the native console
+API and restores its previous display mode on normal process exit. An already
+fullscreen console stays fullscreen. An installed terminal alone never causes
+typr to switch to it.
+
+Use `typr --windowed` (or `python -m typr --windowed`) to keep the current
+window and its display mode. Unknown terminals, SSH, tmux/screen and redirected input/output stay
+in place automatically. If a fullscreen launcher is missing or reports failure,
+typr falls back to the current terminal. Arguments, Python environment and working
+directory are preserved; global terminal settings are not edited.
+
+Windows Terminal and WezTerm were exercised in real Windows windows. The Linux
+and macOS WezTerm/kitty paths have automated launcher tests only; they still need
+native system verification. GNOME Terminal, iTerm2 and Terminal.app currently use
+the existing window; automatic fullscreen is not implemented for them.
 
 ## Install elsewhere
 

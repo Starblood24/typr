@@ -1,14 +1,19 @@
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
-local own_path = wezterm.config_file:gsub('\\', '/'):lower()
+local function path_key(path)
+  path = path:gsub('\\', '/')
+  return wezterm.target_triple:find('windows') and path:lower() or path
+end
+local own_path = path_key(wezterm.config_file)
 
 -- Reuse the user's configuration without changing it.
 for _, path in ipairs {
+  os.getenv('TYPR_WEZTERM_CONFIG') or '',
   os.getenv('WEZTERM_CONFIG_FILE') or '',
   (os.getenv('XDG_CONFIG_HOME') or (wezterm.home_dir .. '/.config')) .. '/wezterm/wezterm.lua',
   wezterm.home_dir .. '/.wezterm.lua',
 } do
-  if path ~= '' and path:gsub('\\', '/'):lower() ~= own_path then
+  if path ~= '' and path_key(path) ~= own_path then
     local file = io.open(path, 'r')
     if file then
       file:close()
