@@ -18,7 +18,9 @@ of the same terminal. Startup inside kitty on Linux/macOS uses its fullscreen
 launch option. A classic Windows console (Command Prompt or PowerShell in
 Console Host) switches its existing window to fullscreen using the native console
 API and restores its previous display mode on normal process exit. An already
-fullscreen console stays fullscreen. A visible local console takes precedence
+fullscreen console stays fullscreen. Windows Terminal is also recognized when
+Windows delegates a cmd/PowerShell session without setting WT_SESSION: typr checks
+the actual owning terminal window. A real classic console takes precedence
 over inherited terminal identifiers and fullscreen launch markers; SSH and nested
 sessions still stay in place. An installed terminal alone never causes
 typr to switch to it.
@@ -51,15 +53,17 @@ command preview is never sent to a shell.
 Quick Start always uses Standard / English / Common / 30 seconds.
 Classic Setup remembers its own last configuration. Setup supports English and
 German; Common, Mixed and Advanced; 15/30/60/120 seconds or 10/25/50/100 words.
-Content is kept within the selected language. Training and Developer are deferred
-and do not appear as nonfunctional controls.
+Content is kept within the selected language. Training remains deferred.
 
 Timing starts on the first printable character. Mistakes may be left in place;
 Backspace crosses word boundaries. WPM is correct characters divided by five,
 per elapsed minute. Accuracy is correct character attempts divided by all
 character attempts, so correcting a mistake does not erase it from accuracy.
 Backspace itself is not counted as a character attempt. WPM samples use the
-same monotonic clock as the session timer. Timed tests supply more text when
+same monotonic clock as the session timer. Chart recording begins only after a
+full second, avoiding a startup spike from dividing by a few milliseconds. Sessions
+shorter than one second have no chart samples. During typing, only time and accuracy
+are shown; WPM remains on the results screen. Timed tests supply more text when
 needed and retain that complete text for Retry.
 
 Escape opens a dedicated pause menu. **Time continues while paused.** A timed
@@ -69,11 +73,39 @@ typed text. Time continues in Settings and its data-management screens too.
 Restart is immediate; abort requires confirmation. Completed Classic tests
 are saved once. Incomplete, aborted and interrupted tests are discarded.
 Retry repeats the same text; New Test keeps settings and generates fresh text.
+The results chart has a fixed 20–100 WPM scale in steps of 10. Values outside
+that range are drawn at the nearest chart edge; session metrics retain their values.
+
+Unreadable or malformed word banks, snippets and stories open the error screen
+with a Retry action. Failed New Test loading preserves the previous saved result.
 
 If saving a completed test or Story paragraph fails, Retry preserves the unsaved
 session. Discard Session (including Escape) asks for confirmation; cancelling
 returns to the error screen so Retry stays available. Startup storage errors
 offer Retry and Quit. Tab and Shift+Tab keep focus in the typing view.
+
+## Developer
+
+Open Classic and change `mode` to `developer`. Choose Python, JavaScript,
+TypeScript or Rust, then a complete-snippet test or a 15/30/60/120-second test.
+There are three complete snippets per language. Word counts and vocabulary
+difficulty are not shown for code. The command preview remains decorative.
+
+Enter types a newline. After a matching newline, the next target line's leading
+spaces are inserted automatically. Backspace removes them one space at a time,
+and can cross previous line boundaries. Automatically inserted spaces contribute
+neither WPM nor accuracy attempts; spaces you type manually after deleting them
+do count. Manually typed newlines count as one character attempt.
+
+The code viewport preserves indentation and blank lines, wraps long lines without
+discarding text and follows the cursor. No whitespace markers or extra input field
+are used. Code is typing material and is never executed by typr.
+
+Pause, restart, results and local history use the Classic session flow. Retry
+preserves the exact text; New Test chooses another snippet. Timed tests append
+whole snippets when necessary. Completed Developer sessions appear in Classic
+statistics with their programming language. Quick Start always stays Standard /
+English / Common / 30 seconds, even after using Developer.
 
 ## Story
 
@@ -141,6 +173,7 @@ settings, retry and error dialogs. Test data uses temporary directories.
 
 - `core/typing_engine.py`: terminal-independent input, timing and metrics.
 - `modes/classic.py`: validated Classic configuration and word generation.
+- `modes/developer.py`: bundled code-snippet selection.
 - `modes/story.py`: validated chapter/paragraph content.
 - `storage/database.py`: transactional local persistence.
 - `app.py`: one session controller and one timer; lifecycle and screen flow.
@@ -149,9 +182,8 @@ settings, retry and error dialogs. Test data uses temporary directories.
 
 The layers are intentionally small: there are no empty service wrappers or
 unimplemented mode classes. Training can later record attempts at the engine
-boundary, and Developer can supply snippet content to the shared typing view;
-indentation accounting and multiline editing belong to that later implementation.
-They are not claimed as working features in this MVP.
+boundary. Developer reuses that engine with multiline input and explicit
+auto-indentation accounting; snippets live in assets/code/snippets.json.
 
 The supplied 24-line Braille star is unchanged and guarded by a SHA-256 test.
 The Compact Utility wordmark is used on Home only; the star is used at boot only.

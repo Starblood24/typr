@@ -128,6 +128,29 @@ async def test_typing_results_retry_new_and_stats(tmp_path):
         assert isinstance(app.screen, StatsScreen)
 
 
+@pytest.mark.parametrize("mode", ["classic", "developer", "story"])
+async def test_typing_hides_live_wpm_but_keeps_time_accuracy_and_results(tmp_path, mode):
+    app = TyprApp(tmp_path, skip_boot=True)
+    async with app.run_test() as pilot:
+        if mode == "story":
+            app.start_story(load_stories()[0], 1)
+        else:
+            config = ClassicConfig(mode="developer", test_type="snippet", length=1) if mode == "developer" else ClassicConfig()
+            app.start_classic("abc", config)
+        await pilot.pause()
+        await pilot.press(app.session.target[0])
+        app.screen.refresh_session()
+        metrics = str(app.screen.query_one("#metrics", Static).content)
+        assert "wpm" not in metrics.lower()
+        assert "% acc" in metrics and ":" in metrics
+        if mode != "story":
+            app.session.finish()
+            app.complete_classic()
+            await pilot.pause()
+            assert isinstance(app.screen, ResultsScreen)
+            assert "wpm" in str(app.screen.query_one(".spaced", Static).content)
+
+
 async def test_pause_expiration_and_single_save(tmp_path):
     app = TyprApp(tmp_path, skip_boot=True)
     async with app.run_test() as pilot:

@@ -13,7 +13,7 @@ Source: the user's complete specification supplied in this chat, following the
 - After boot, first launch goes directly to Home. Quick Start always uses
   Standard / English / Common / 30 seconds. Classic Setup keeps its last configuration.
 - Classic has CONTENT and SESSION groups and a decorative command preview.
-  Standard only; en/de; Common/Mixed/Advanced; time 15/30/60/120; words 10/25/50/100.
+  Standard content: en/de; Common/Mixed/Advanced; time 15/30/60/120; words 10/25/50/100.
 - Shared typing view: integrated text, distinct correct/error/pending treatment,
   native thin bar cursor independent of target characters; solid while active, slow idle blink. Three lines, reduced
   on small windows, with the cursor always in the visible section. No whitespace
@@ -44,9 +44,9 @@ Source: the user's complete specification supplied in this chat, following the
   Textual/Rich measures terminal cells and negotiates terminal color support.
 - Local SQLite holds settings, last Classic configuration, completed tests and
   Story checkpoints. No incomplete Classic history, telemetry or cloud dependency.
-- Developer (Python/JS/TS/Rust, preserved snippets, auto-indent accounting) and
-  Training remain deferred. Core, content, persistence and UI stay separate so
-  those modes can later reuse the same typing/session boundary.
+- Developer is available within Classic: Python, JavaScript, TypeScript and Rust,
+  complete snippets or timed tests, preserved line structure, removable auto-indent
+  excluded from WPM, shared typing/results/persistence. Training remains deferred.
 
 The suggested architecture is consolidated into substantive modules rather than
 empty one-method service/repository wrappers. App owns the single session timer
@@ -58,3 +58,8 @@ an installed one. Fullscreen launchers cover WezTerm, Windows Terminal and kitty
 --windowed, unknown hosts, remote/nested terminals and redirected streams stay
 in the current terminal. Failed launch attempts fall back there. No global
 terminal configuration changes. Linux/macOS native validation is still pending.
+
+Typing-metrics update, 2 November 2026: Classic, Developer and Story show time
+and accuracy during input. WPM is shown on results only. Chart sampling starts
+after one full second; the time axis retains its actual zero origin without
+an artificial sample at zero.

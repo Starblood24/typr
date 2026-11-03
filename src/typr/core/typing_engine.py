@@ -28,6 +28,8 @@ class Session:
     samples: list[tuple[float, float]] = field(default_factory=list)
     completed_chars: int = 0
     last_input: float | None = None
+    code: bool = False
+    automatic: set[int] = field(default_factory=set)
 
     @property
     def elapsed(self):
@@ -41,7 +43,8 @@ class Session:
 
     @property
     def correct(self):
-        return self.completed_chars + sum(a == b for a, b in zip(self.target, self.typed))
+        return self.completed_chars + sum(a == b for i, (a, b) in enumerate(zip(self.target, self.typed))
+                                          if i not in self.automatic)
 
     @property
     def wpm(self):
@@ -59,7 +62,7 @@ class Session:
         self.tick()
         if self.status not in (SessionStatus.READY, SessionStatus.RUNNING):
             return
-        if not character.isprintable() or len(character) != 1:
+        if len(character) != 1 or not (character.isprintable() or self.code and character == "\n"):
             return
         # Story errors stay visible until backspace; they cannot be bypassed.
         if self.strict and self.typed != self.target[:len(self.typed)]:
@@ -71,13 +74,19 @@ class Session:
         self.status = SessionStatus.RUNNING
         self.last_input = self.clock()
         self.attempts += 1
-        self.correct_attempts += character == self.target[len(self.typed)]
+        matched = character == self.target[len(self.typed)]
+        self.correct_attempts += matched
         self.typed += character
+        if self.code and character == "\n" and matched:
+            while len(self.typed) < len(self.target) and self.target[len(self.typed)] == " ":
+                self.automatic.add(len(self.typed))
+                self.typed += " "
 
     def backspace(self):
         self.tick()
         if self.status in (SessionStatus.READY, SessionStatus.RUNNING):
             self.last_input = self.clock()
+            self.automatic.discard(len(self.typed) - 1)
             self.typed = self.typed[:-1]
 
     def tick(self):
@@ -86,7 +95,7 @@ class Session:
         if self.duration is not None and self.started is not None and self.remaining <= 0:
             self.finish(timed=True)
             return
-        if self.started is not None and (not self.samples or self.elapsed - self.samples[-1][0] >= 1):
+        if self.elapsed >= 1 and (not self.samples or self.elapsed - self.samples[-1][0] >= 1):
             self.samples.append((self.elapsed, self.wpm))
 
     def finish(self, timed=False):
@@ -94,13 +103,20 @@ class Session:
             return
         self.ended = self.started + self.duration if timed and self.started is not None else self.clock()
         self.status = SessionStatus.FINISHED
-        self.samples.append((self.elapsed, self.wpm))
+        elapsed = self.elapsed
+        if elapsed >= 1:
+            sample = (elapsed, self.wpm)
+            if self.samples and self.samples[-1][0] == elapsed:
+                self.samples[-1] = sample
+            else:
+                self.samples.append(sample)
 
     def next_paragraph(self, target):
         if not self.complete:
             raise ValueError("Cannot advance an unfinished paragraph")
         self.completed_chars += len(self.target)
         self.target, self.typed = target, ""
+        self.automatic.clear()
 
     def pause_menu(self):
         if self.status in (SessionStatus.READY, SessionStatus.RUNNING):

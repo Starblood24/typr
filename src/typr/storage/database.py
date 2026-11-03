@@ -3,7 +3,8 @@ import json
 import sqlite3
 from pathlib import Path
 
-DEFAULTS = {"animations": "subtle", "cursor blink": "on", "ascii art": "on"}
+SETTING_VALUES = {"animations": ("subtle", "off"), "cursor blink": ("on", "off"), "ascii art": ("on", "off")}
+DEFAULTS = {key: values[0] for key, values in SETTING_VALUES.items()}
 
 
 class Database:
@@ -36,7 +37,8 @@ class Database:
         with self.connection:
             self.connection.execute(
                 "INSERT INTO sessions(language, config, wpm, accuracy, duration, samples) VALUES (?, ?, ?, ?, ?, ?)",
-                (config.language, json.dumps(config.as_dict()), session.wpm, session.accuracy,
+                (config.code_language if config.mode == "developer" else config.language,
+                 json.dumps(config.as_dict()), session.wpm, session.accuracy,
                  session.elapsed, json.dumps(session.samples)),
             )
 

@@ -9,7 +9,7 @@ from textual.binding import Binding
 from .core.typing_engine import Session, SessionStatus
 from .modes.classic import ClassicConfig, generate
 from .modes.story import load_stories
-from .storage.database import Database, DEFAULTS
+from .storage.database import Database, DEFAULTS, SETTING_VALUES
 from .ui.screens import (BootScreen, HomeScreen, TypingScreen, PauseScreen, ResultsScreen,
                          StoryDirectoryScreen, ChapterIntroScreen, StoryCompleteScreen,
                          ConfirmScreen, ErrorScreen, SettingsScreen, DataScreen, StatsScreen)
@@ -64,7 +64,7 @@ class TyprApp(App):
         if self.db is None:
             self.db = Database(self.data_dir / "typr.db")
         settings = self.db.settings()
-        self.settings = {k: settings.get(k) if settings.get(k) in ("on", "off", "subtle") else v for k, v in DEFAULTS.items()}
+        self.settings = {k: settings.get(k) if settings.get(k) in SETTING_VALUES[k] else v for k, v in DEFAULTS.items()}
         try:
             data = json.loads(settings.get("classic", "{}"))
             self.classic_config = ClassicConfig(**{f.name: data[f.name] for f in fields(ClassicConfig) if f.name in data})
@@ -82,7 +82,7 @@ class TyprApp(App):
             back, label = None, "back"
             if len(self.screen_stack) == 1:
                 back, label = self.goodbye, "quit"
-            elif self.saving and self.session is not None:
+            elif self.saving and self.session is not None and not isinstance(self.screen, ResultsScreen):
                 back = lambda: self.push_screen(ConfirmScreen(
                     "discard this unsaved session?", self.abort))
                 label = "discard session"
@@ -103,12 +103,16 @@ class TyprApp(App):
         self.io(lambda: self.db.setting("classic", json.dumps(self.classic_config.as_dict())), lambda _: self.start_classic())
 
     def start_classic(self, text=None, config=None):
-        self.story = None
-        self.session_config = replace(config if config is not None else self.classic_config)
-        self.original_text = text if text is not None else generate(self.session_config)
-        self.session = Session(self.original_text, self.session_config.length if self.session_config.test_type == "time" else None)
-        self.saving = False
-        self.replace_session_screen(TypingScreen())
+        config = replace(config if config is not None else self.classic_config)
+        def start(target):
+            self.story = None
+            self.session_config = config
+            self.original_text = target
+            self.session = Session(target, config.length if config.test_type == "time" else None,
+                                   code=config.mode == "developer")
+            self.saving = False
+            self.replace_session_screen(TypingScreen())
+        self.io(lambda: text if text is not None else generate(config, previous=self.original_text), start)
 
     def replace_session_screen(self, screen):
         while len(self.screen_stack) > 2 and isinstance(self.screen, (PauseScreen, SettingsScreen, DataScreen, ConfirmScreen, ErrorScreen)):
@@ -119,6 +123,8 @@ class TyprApp(App):
             self.push_screen(screen)
 
     def tick(self):
+        if not self.is_running:
+            return
         session = self.session
         if not session or self.saving:
             return
@@ -149,8 +155,10 @@ class TyprApp(App):
                 self.saving = True
                 self.io(lambda: self.db.checkpoint(self.story.id, next_index), lambda _: self.advance_story(next_index))
             elif s.duration:
-                s.target += " " + generate(self.session_config)
-                self.original_text = s.target
+                def extend(text):
+                    s.target += ("\n\n" if s.code else " ") + text
+                    self.original_text = s.target
+                self.io(lambda: generate(self.session_config), extend)
             else:
                 s.finish()
                 self.complete_classic()

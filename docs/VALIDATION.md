@@ -216,3 +216,98 @@ coverage, **36 targeted cases passed (2.45s)**, bringing covered cases to 134.
 The cursor regression now uses the real App._display implementation rather than
 mocking away the frame rendering. Native console output ordering was checked;
 no pixel/video-based flicker measurement or Linux/macOS run was performed.
+
+## Windows default-terminal delegation — 2 November 2026
+
+Reproduced the remaining failure using the normal Windows launch path for both
+cmd.exe and Windows PowerShell, without forcing conhost.exe. Windows Terminal
+1.24 hosted both sessions, but WT_SESSION was absent. GetConsoleWindow returned
+a zero-size PseudoConsoleWindow with IsWindowVisible=true. Its owner process was
+the shell, so neither visibility nor process-name guessing identifies this host.
+
+Legacy fullscreen now requires ConsoleWindowClass. For delegated sessions,
+GetAncestor(GetConsoleWindow(), GA_ROOTOWNER) identifies the actual
+CASCADIA_HOSTING_WINDOW_CLASS window and selects the existing Windows Terminal
+fullscreen launcher. Unknown hosts remain in place. No process enumeration,
+global terminal-setting changes or extra dependencies are used.
+
+**142 tests passed in 40.54s.** Eight new cases cover real versus pseudo window
+classes, delegated/unknown window ownership and startup without terminal markers.
+An earlier full run overlapped native diagnostics and had two UI timing failures;
+the final standalone full run passed.
+
+Real normal cmd and PowerShell launches were recorded before and after the fix.
+Before: 1186 x 618 logical pixels with a caption. After: each reached BootScreen
+in a new Windows Terminal window at 1440 x 900 logical pixels, matching the
+display with no caption. Arguments and the same editable Python installation
+were confirmed. Native check logs are kept in workspace work/host-debug.
+Linux/macOS were not tested for this Windows-only correction.
+
+## Developer mode — 2 November 2026
+
+Developer is a Classic content selection, with 12 complete snippets across Python,
+JavaScript, TypeScript and Rust. Sessions may finish a snippet or use a time limit.
+Auto-indent follows matching target newlines, supports single-space deletion and
+is excluded from WPM/accuracy. The shared renderer preserves code line structure
+and keeps the caret visible through wrapping and resizing. Retry, New Test,
+Quick Start defaults, old settings and completed-session persistence were covered.
+
+**162 automated cases passed.** Phase checks: 64 content/core cases, 67 after
+engine changes, and 20 Developer-specific cases after UI integration. Python
+snippets were parsed with ast; all JavaScript snippets passed node --check.
+TypeScript/Rust compilers are absent, so those snippets were not compiler-checked.
+
+Native Developer TypingScreen checks after real cmd, PowerShell and WezTerm
+starts reported code=true and fullscreen windows matching the display, without
+a caption (1440 x 900 logical pixels). WezTerm also reported is_full_screen=true
+at 2880 x 1800 pixels. SHA-256 checks confirm terminal.py, cli.py, the Lua starter
+and run.ps1 are unchanged. Code views at 100 x 36 and 40 x 12 were visually
+inspected. Native Linux/macOS verification remains pending.
+
+## Fixed WPM chart scale — 2 November 2026
+
+Results now use six fixed levels: 120, 100, 80, 60, 40 and 20 WPM. Samples
+outside the range are clamped to the chart edge without modifying session
+metrics. Added coverage for beginner speeds and large startup peaks.
+
+**101 targeted tests passed in 2.19s:** core/chart, results flow and terminal
+regressions. The rendered text chart was inspected. No native GUI rerun.
+
+## WPM chart refinement — 2 November 2026
+
+The fixed chart now spans 20 to 100 WPM with nine levels, every 10 WPM.
+Out-of-range samples remain clamped to the chart edge.
+**59 targeted core/chart and results-flow tests passed in 1.93s.**
+No native terminal rerun for this chart-only adjustment.
+
+## WPM startup sampling and focus — 2 November 2026
+
+The first graph sample previously used the first tick after input, even at a
+near-zero elapsed time. Sampling now requires at least one second, with the
+existing one-second cadence thereafter. Final samples use actual elapsed time
+and replace an existing same-timestamp sample. Subsecond tests have no chart
+points. Cumulative final WPM and actual timestamps are preserved.
+
+Removed live WPM from the shared Classic/Developer/Story metrics row; time and
+accuracy remain. Results retain WPM. Regression cases cover the startup spike,
+short sessions, final-sample correctness and all three typing modes.
+**171 tests passed.** No additional native terminal run for this metrics change.
+
+## Ponytail audit and follow-up review — 2 November 2026
+
+Six findings were addressed: recoverable content-loading errors and validation;
+shutdown timer safety; quit-footer resize state; per-setting validation; redundant
+keyboard/generation paths; and one shared version source. The audit reproduced
+seven failing cases before fixes. Results Escape was checked and already correct.
+
+The follow-up review also checked inherited Escape handling and saved-result
+preservation when New Test fails. Added 18 regression cases. **189 tests passed
+in the final full run.** The production diff adds 64 lines and removes 39, with
+no new dependencies. Required validation accounts for most added code.
+
+Real cmd, PowerShell and WezTerm launches reached Developer TypingScreen in
+fullscreen. Windows measurements matched the display without a caption; WezTerm
+reported 2880 x 1800 and is_full_screen=true. Protected startup-file hashes are
+unchanged. Public package services, native Linux/macOS and TypeScript/Rust
+compilation were not exercised. Full reports are in QUALITY_AUDIT.md and
+QUALITY_REVIEW.md.

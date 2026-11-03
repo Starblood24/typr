@@ -1,11 +1,11 @@
 from dataclasses import replace
-from textual import events
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Static
 
-from typr.core.typing_engine import SessionStatus
+from typr import __version__
 from typr.modes.classic import ClassicConfig
+from typr.storage.database import SETTING_VALUES
 from .widgets import TerminalMenu, TypingView, art, clock_text, progress, wpm_chart
 
 
@@ -16,7 +16,7 @@ class UtilityScreen(Screen):
     def compose(self):
         header = "typr_" if self.title_text == "home" else f"typr_ / {self.title_text}"
         if self.title_text in ("home", "paused"):
-            header += "    v0.1.0"
+            header += f"    v{__version__}"
         yield Static(header, classes="header", markup=False)
         with VerticalScroll(classes="body"):
             yield from self.body()
@@ -53,7 +53,8 @@ class UtilityScreen(Screen):
             for info in self.query("#boot-info"):
                 info.styles.height = min(24, max(8, size.height - (4 if self.has_class("compact") else 5)))
             for view in self.query(TypingView):
-                view.styles.height = 1 if size.height < 15 else 2 if size.height < 18 else 3
+                view.styles.height = (min(12, max(1, size.height - 10)) if self.app.session and self.app.session.code
+                                      else 1 if size.height < 15 else 2 if size.height < 18 else 3)
             footer = self.query_one(".footer", Static)
             footer.update(self.footer_text.replace("navigate", "move").replace("select", "go").replace("continue", "go") if size.width < 60 else self.footer_text)
 
@@ -104,7 +105,10 @@ class BootScreen(UtilityScreen):
 
 
 class HomeScreen(UtilityScreen):
-    footer_text = "↑↓ navigate   enter select   q/esc quit"
+    @property
+    def footer_text(self):
+        return ("y confirm   n cancel   esc cancel" if getattr(self, "quitting", False)
+                else "↑↓ navigate   enter select   q/esc quit")
 
     def body(self):
         with Horizontal(classes="split"):
@@ -119,7 +123,7 @@ class HomeScreen(UtilityScreen):
     def request_quit(self):
         self.quitting = True
         self.query_one("#quit-prompt", Static).update("terminate? [y/N] _")
-        self.query_one(".footer", Static).update("y confirm   n cancel   esc cancel")
+        self.query_one(".footer", Static).update(self.footer_text)
 
     def cancel_quit(self):
         self.quitting = False
@@ -161,10 +165,13 @@ class ClassicSetupScreen(UtilityScreen):
 
     def options(self):
         c = self.config
-        return [("[ CONTENT ]", None), ("mode          < standard >", "mode"),
-                (f"language      < {'english' if c.language == 'en' else 'deutsch'} >", "language"),
-                (f"difficulty    < {c.difficulty} >", "difficulty"), ("", None),
+        code = c.mode == "developer"
+        language = c.code_language if code else "english" if c.language == "en" else "deutsch"
+        return [("[ CONTENT ]", None), (f"mode          < {c.mode} >", "mode"),
+                (f"language      < {language} >", "language"),
+                ("", None) if code else (f"difficulty    < {c.difficulty} >", "difficulty"), ("", None),
                 ("[ SESSION ]", None), (f"test type     < {c.test_type} >", "test_type"),
+                ("", None) if c.test_type == "snippet" else
                 (f"{'duration' if c.test_type == 'time' else 'words':14}< {c.length}{'s' if c.test_type == 'time' else ''} >", "length"),
                 ("", None), ("start test", "start")]
 
@@ -175,28 +182,37 @@ class ClassicSetupScreen(UtilityScreen):
 
     def command(self):
         c = self.config
+        if c.mode == "developer":
+            limit = "--snippet" if c.test_type == "snippet" else f"--time {c.length}"
+            return f"$ typr --mode developer --lang {c.code_language} {limit}"
         return f"$ typr --mode standard --lang {c.language} --difficulty {c.difficulty} --{c.test_type} {c.length}"
 
     def change(self, step):
         key = self.query_one(TerminalMenu).selected
-        choices = {"language": ("en", "de"), "difficulty": ("common", "mixed", "advanced"),
-                   "test_type": ("time", "words"), "length": (15, 30, 60, 120) if self.config.test_type == "time" else (10, 25, 50, 100)}
+        code = self.config.mode == "developer"
+        choices = {"mode": ("standard", "developer"),
+                   "language": ("python", "javascript", "typescript", "rust") if code else ("en", "de"),
+                   "difficulty": ("common", "mixed", "advanced"),
+                   "test_type": ("snippet", "time") if code else ("time", "words"),
+                   "length": (15, 30, 60, 120) if self.config.test_type == "time" else (10, 25, 50, 100)}
         if key not in choices:
             return
         values = choices[key]
-        setattr(self.config, key, values[(values.index(getattr(self.config, key)) + step) % len(values)])
+        attribute = "code_language" if code and key == "language" else key
+        setattr(self.config, attribute, values[(values.index(getattr(self.config, attribute)) + step) % len(values)])
+        if key == "mode":
+            self.config.test_type = "snippet" if self.config.mode == "developer" else "time"
+            self.config.length = 1 if self.config.test_type == "snippet" else 30
         if key == "test_type":
-            self.config.length = 30 if self.config.test_type == "time" else 25
+            self.config.length = 30 if self.config.test_type == "time" else 1 if code else 25
         self.query_one(TerminalMenu).relabel(self.options())
         self.query_one("#command", Static).update(self.command())
 
     def on_key(self, event):
-        event.prevent_default()
         if event.key in ("left", "right"):
+            event.prevent_default()
             self.change(1 if event.key == "right" else -1)
             event.stop()
-        else:
-            super().on_key(event)
 
     def on_terminal_menu_selected(self, event):
         if event.key == "start":
@@ -236,9 +252,11 @@ class TypingScreen(UtilityScreen):
             fraction = (self.app.paragraph + len(s.typed)/len(s.target)) / len(story.paragraphs)
         else:
             self.query_one("#chapter", Static).display = False
+            if s.code:
+                self.query_one(".header", Static).update(f"typr_ / classic / developer / {self.app.session_config.code_language}")
             fraction = s.elapsed / s.duration if s.duration else len(s.typed) / len(s.target)
         time = s.remaining if s.duration else s.elapsed
-        self.query_one("#metrics", Static).update(f"{clock_text(time)}    {s.wpm:.0f} wpm    {s.accuracy:.0f}% acc")
+        self.query_one("#metrics", Static).update(f"{clock_text(time)}    {s.accuracy:.0f}% acc")
         self.query_one("#progress", Static).update("progress " + progress(fraction))
         self.query_one(TypingView).refresh()
 
@@ -247,9 +265,6 @@ class TypingScreen(UtilityScreen):
         if event.key == "escape":
             self.app.session.pause_menu()
             self.app.push_screen(PauseScreen())
-            event.stop()
-        elif event.key == "ctrl+r":
-            self.app.restart()
             event.stop()
 
 
@@ -350,14 +365,12 @@ class StoryDirectoryScreen(UtilityScreen):
         self.details()
 
     def on_key(self, event):
-        event.prevent_default()
         if event.key in ("left", "right"):
+            event.prevent_default()
             choices = ("all", "de", "en")
             lang = choices[(choices.index(self.language) + (1 if event.key == "right" else -1)) % 3]
             self.app.switch_screen(StoryDirectoryScreen(self.stories, lang))
             event.stop()
-        else:
-            super().on_key(event)
 
     def on_terminal_menu_selected(self, event):
         if event.key == "restart":
@@ -436,7 +449,8 @@ class SettingsScreen(UtilityScreen):
         if key == "data":
             self.app.push_screen(DataScreen())
             return
-        value = ("off" if self.app.settings[key] != "off" else ("subtle" if key == "animations" else "on"))
+        values = SETTING_VALUES[key]
+        value = values[(values.index(self.app.settings[key]) + 1) % len(values)]
         def saved(_):
             self.app.settings[key] = value
             self.query_one(TerminalMenu).relabel(self.options())
@@ -445,12 +459,10 @@ class SettingsScreen(UtilityScreen):
         self.app.io(lambda: self.app.db.setting(key, value), saved)
 
     def on_key(self, event):
-        event.prevent_default()
         if event.key in ("left", "right"):
+            event.prevent_default()
             self.change()
             event.stop()
-        else:
-            super().on_key(event)
 
     def on_terminal_menu_selected(self, event):
         self.change()

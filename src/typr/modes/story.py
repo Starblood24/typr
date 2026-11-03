@@ -23,14 +23,25 @@ def load_stories():
         for path in sorted(root.joinpath(language).iterdir(), key=lambda p: p.name):
             if path.name.endswith(".json"):
                 data = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(data, dict):
+                    raise ValueError(f"Invalid story: {path.name}")
                 story = Story(**data)
-                if story.language != language or not story.chapters:
+                if (story.language != language or not isinstance(story.chapters, list) or not story.chapters
+                        or any(not isinstance(value, str) or not value.strip() or not value.isprintable()
+                               for value in (story.id, story.title))):
                     raise ValueError(f"Invalid story: {path.name}")
                 for chapter in story.chapters:
-                    if not chapter.get("title") or not chapter.get("paragraphs"):
+                    if (not isinstance(chapter, dict) or not isinstance(chapter.get("title"), str)
+                            or not chapter["title"].strip() or not chapter["title"].isprintable()
+                            or not isinstance(chapter.get("paragraphs"), list)
+                            or not chapter["paragraphs"]):
                         raise ValueError(f"Empty chapter: {path.name}")
-                    if any(not isinstance(p, str) or not p or not p.isprintable() for p in chapter["paragraphs"]):
+                    if any(not isinstance(p, str) or not p.strip() or not p.isprintable() for p in chapter["paragraphs"]):
                         raise ValueError(f"Invalid paragraph: {path.name}")
+                    for key in ("intro", "art"):
+                        if key in chapter and (not isinstance(chapter[key], str)
+                                or any(not (ch.isprintable() or ch == "\n") for ch in chapter[key])):
+                            raise ValueError(f"Invalid chapter {key}: {path.name}")
                 if any(s.id == story.id for s in stories):
                     raise ValueError(f"Duplicate story: {story.id}")
                 stories.append(story)

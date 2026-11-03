@@ -52,6 +52,44 @@ def test_standard_errors_unicode_backspace_and_metrics():
     assert s.accuracy == 90
 
 
+def test_chart_samples_do_not_include_near_zero_startup_spike():
+    clock = Clock()
+    session = Session("abcde", None, clock=clock)
+    session.type("a")
+    clock.now = .00001
+    session.tick()
+    assert not session.samples
+    for time, character in ((.4, "b"), (.8, "c"), (1.2, "d"), (1.6, "e")):
+        clock.now = time
+        session.type(character)
+    clock.now = 2
+    session.finish()
+    assert session.wpm == 30
+    assert [time for time, _ in session.samples] == [1.2, 2]
+    assert all(wpm == pytest.approx(30) for _, wpm in session.samples)
+
+
+def test_subsecond_session_has_no_unreliable_chart_point():
+    clock = Clock()
+    session = Session("ab", None, clock=clock)
+    session.type("a")
+    clock.now = .2
+    session.type("b")
+    session.finish()
+    assert not session.samples
+    assert "no samples" in wpm_chart(session.samples)
+
+
+def test_final_sample_replaces_same_timestamp_after_last_character():
+    clock = Clock()
+    session = Session("ab", None, clock=clock)
+    session.type("a")
+    clock.now = 1
+    session.type("b")
+    session.finish()
+    assert session.samples == [(1, 24)]
+
+
 def test_story_strict_correction_and_locked_paragraphs():
     s = Session("ab", None, strict=True)
     s.type("x")
@@ -137,3 +175,16 @@ def test_chart_and_progress_boundaries():
     assert progress(-1).endswith("0%")
     chart = wpm_chart([(0, 0), (1, 30), (2, 60)])
     assert "WPM OVER TIME" in chart and "60" in chart and "2s" in chart
+
+
+@pytest.mark.parametrize("peak", [30, 100, 750])
+def test_wpm_chart_keeps_fixed_ten_point_scale(peak):
+    chart = wpm_chart([(0, 0), (10, peak)], width=11)
+    rows = chart.splitlines()[2:11]
+    assert [int(row.split("|")[0]) for row in rows] == [100, 90, 80, 70, 60, 50, 40, 30, 20]
+    assert rows[-1][5] == "*"
+    if peak >= 100:
+        assert rows[0][-1] == "*"
+    else:
+        assert rows[7][-1] == "*"
+    assert all(len(row) == 16 for row in rows)

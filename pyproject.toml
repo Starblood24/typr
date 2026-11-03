@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "typr-terminal"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A quiet, keyboard-first terminal typing utility."
 requires-python = ">=3.11"
 dependencies = ["textual==8.2.8", "platformdirs>=3.6,<5"]
@@ -18,8 +18,11 @@ typr = "typr.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.dynamic]
+version = {attr = "typr.__version__"}
+
 [tool.setuptools.package-data]
-typr = ["assets/*.lua", "assets/art/*.txt", "assets/words/*.json", "assets/stories/*/*.json", "ui/*.tcss"]
+typr = ["assets/*.lua", "assets/art/*.txt", "assets/words/*.json", "assets/code/*.json", "assets/stories/*/*.json", "ui/*.tcss"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

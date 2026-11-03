@@ -29,16 +29,17 @@ def clock_text(seconds):
     return f"{seconds // 60:02}:{seconds % 60:02}"
 
 
-def wpm_chart(samples, width=40, height=6):
+def wpm_chart(samples, width=40):
     if not samples:
         return "WPM OVER TIME\n\n(no samples)"
     duration = max(samples[-1][0], 1)
-    top = max(10, math.ceil(max(w for _, w in samples) / 10) * 10)
+    levels = range(100, 10, -10)
+    height = len(levels)
     grid = [[" " for _ in range(width)] for _ in range(height)]
     previous = None
     for second, wpm in samples:
         x = min(width - 1, int(second / duration * (width - 1)))
-        y = height - 1 - min(height - 1, round(wpm / top * (height - 1)))
+        y = max(0, min(height - 1, round((100 - wpm) / 10)))
         if previous:
             px, py = previous
             for xx in range(px, x + 1):
@@ -48,7 +49,7 @@ def wpm_chart(samples, width=40, height=6):
         previous = x, y
     lines = ["WPM OVER TIME", ""]
     for y, row in enumerate(grid):
-        lines.append(f"{round(top * (height-1-y)/(height-1)):3} |" + "".join(row))
+        lines.append(f"{levels[y]:3} |" + "".join(row))
     lines.extend(["    +" + "-" * width, "     0" + f"{duration:.0f}s".rjust(width - 1)])
     return "\n".join(lines)
 
@@ -132,9 +133,12 @@ class TypingView(Widget, can_focus=True):
         while start < len(text):
             end, cells = start, 0
             while end < len(text) and cells + cell_len(text[end]) <= width:
+                if session.code and text[end] == "\n":
+                    end += 1
+                    break
                 cells += cell_len(text[end])
                 end += 1
-            if end < len(text):
+            if end < len(text) and not session.code:
                 space = text.rfind(" ", start, end)
                 if space > start:
                     end = space + 1
@@ -143,14 +147,19 @@ class TypingView(Widget, can_focus=True):
             start = end
         cursor = len(session.typed)
         first = next((i for i, (_, end) in enumerate(lines) if cursor < end), max(0, len(lines)-1))
+        active = first
+        if session.code:
+            first = max(0, active - min(2, max(0, self.size.height - 1)))
         if lines:
-            self.caret_offset = Offset(cell_len(text[lines[first][0]:cursor]), 0)
+            self.caret_offset = Offset(cell_len(text[lines[active][0]:cursor]), active - first)
         result = Text()
-        visible_lines = max(1, min(3, self.size.height))
+        visible_lines = max(1, min(12 if session.code else 3, self.size.height))
         for row, (begin, end) in enumerate(lines[first:first+visible_lines]):
             if row:
                 result.append("\n")
             for i in range(begin, end):
+                if session.code and text[i] == "\n":
+                    continue
                 style = PALETTE["pending"]
                 if i < cursor:
                     style = PALETTE["correct"] if session.typed[i] == text[i] else f'{PALETTE["error_text"]} on {PALETTE["error_background"]}'
@@ -163,6 +172,8 @@ class TypingView(Widget, can_focus=True):
             return
         if event.key == "backspace":
             self.app.session.backspace()
+        elif event.key == "enter" and self.app.session.code:
+            self.app.session.type("\n")
         elif event.character and event.character.isprintable():
             self.app.session.type(event.character)
         else:
